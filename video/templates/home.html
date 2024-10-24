@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel Page</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 2000px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border: 3px solid #fff;
+            margin-bottom: 20px;
+        }
+
+        .channel-info h1 {
+            font-size: 36px;
+            margin: 0;
+        }
+
+        .channel-info p {
+            font-size: 18px;
+            color: #bdc3c7;
+            margin-top: 5px;
+        }
+
+        .channel-banner {
+            width: 100%;
+            height: 200px;
+            margin-top: 20px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        main.main-content {
+            flex: 1;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin: 0 20px;
+        }
+
+        #video-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 20px;
+        }
+
+        .video-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-thumbnail {
+            position: relative;
+            display: block;
+        }
+
+        .video-thumbnail img {
+            width: 100%;
+            height: auto;
+            border-bottom: 3px solid #3498db;
+        }
+
+        .video-duration {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .video-details {
+            padding: 15px;
+            text-align: left;
+        }
+
+        .video-details h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+
+        .video-details p {
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+
+        @media (min-width: 768px) {
+            .video-card {
+                display: flex;
+                align-items: center;
+            }
+
+            .video-thumbnail {
+                flex: 1;
+            }
+
+            .video-details {
+                flex: 2;
+                padding: 30px;
+            }
+            
+            @media (max-width: 1024px) {
+            #video-list {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns for medium screens */
+                }
+            }
+
+            @media (max-width: 768px) {
+                #video-list {
+                    grid-template-columns: repeat(1, 1fr); /* 1 column for small screens */
+                }
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo">
+                    <img id="channel-logo" src="" alt="Channel Logo">
+                </div>
+                <div class="channel-info">
+                    <h1 id="channel-name">Channel Name</h1>
+                    <p id="channel-subscribers">Subscribers: 1M</p>
+                </div>
+            </div>
+            <div id="channel-banner" class="channel-banner"></div>
+        </header>
+
+        <main class="main-content">
+            <section class="videos" id="videos">
+                <div id="video-list">
+                    <!-- Videos will be dynamically inserted here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const channelId = urlParams.get('channel_id');
+
+            if (channelId) {
+                $.getJSON(`/channel_info/${channelId}`, function (data) {
+                    if (data.channel_name && data.channel_logo_url && data.subscriber_count && data.banner_url) {
+                        $('#channel-name').text(data.channel_name);
+                        $('#channel-logo').attr('src', data.channel_logo_url);
+                        $('#channel-subscribers').text('Subscribers: ' + data.subscriber_count);
+                        $('#channel-banner').css('background-image', `url(${data.banner_url})`);
+                    } else {
+                        console.error('Error fetching channel info');
+                    }
+                }).fail(function () {
+                    console.error('Failed to fetch channel info');
+                });
+
+                $.getJSON(`/channel_videos/${channelId}`, function (videos) {
+                    const videoList = $('#video-list');
+                    videoList.empty();
+
+                    videos.forEach(function (video) {
+                        const videoHtml = `
+                            <div class="video-card">
+                                <a href="/analysis?channel_id=${channelId}&video_id=${video.id}" class="video-thumbnail">
+                                    <img src="${video.thumbnail}" alt="Video Thumbnail">
+                                    <span class="video-duration">${video.duration}</span>
+                                </a>
+                                <div class="video-details">
+                                    <h3><a href="/analysis?channel_id=${channelId}&video_id=${video.id}">${video.title}</a></h3>
+                                    <p class="views">${video.views} views</p>
+                                </div>
+                            </div>
+                        `;
+                        videoList.append(videoHtml);
+                    });
+                }).fail(function () {
+                    console.error('Failed to fetch videos');
+                });
+            } else {
+                alert('No channel ID provided.');
+            }
+        });
+    </script>
+</body>
+
+</html>

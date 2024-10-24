@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Sentiment and AI Analysis</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.0.3/marked.min.js"></script>
+    <style>
+
+        .charts-container {
+            display: flex;                /* Enable flexbox */
+            justify-content: space-between; /* Distribute space between charts */
+            align-items: flex-start;      /* Align items to the top */
+        }
+
+        .chart-container {
+            width: 48%;                  /* Set each chart container width */
+            margin: 1%;                  /* Add some margin for spacing */
+        }
+
+        canvas {
+            max-width: 100%;             /* Ensure canvas is responsive */
+            height: auto;                /* Maintain aspect ratio */
+        }
+
+        .total-comments {
+            margin-bottom: 20px;         /* Space between total comments and charts */
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <main class="main-content">
+            <h1>Video Details and AI Analysis</h1>
+            <div id="video-details">
+                <!-- Video details will be dynamically inserted here -->
+            </div>
+            <hr>
+            <div id="sentiment-results" class="video-analysis">
+                <div class="total-comments"></div>
+                <div class="charts-container">
+                    <div class="chart-container">
+                        <canvas id="radar-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="bar-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <hr>
+
+            <!-- AI Analysis Section -->
+            <div id="ai-analysis">
+                <h2>AI-Generated Insights</h2>
+                <p id="ai-analysis-content">Loading AI analysis...</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('video_id');
+
+            function formatDuration(isoDuration) {
+                const regex = /PT(?:(\d+)M)?(?:(\d+)S)?/;
+                const matches = isoDuration.match(regex);
+
+                const minutes = matches[1] || '0'; // Get minutes or default to '0'
+                const seconds = matches[2] || '0'; // Get seconds or default to '0'
+
+                return `${minutes}:${seconds.padStart(2, '0')}`; // Format as "M:SS"
+            }
+
+            if (videoId && videoId !== 'undefined') {
+                // Fetch video details
+                $.getJSON(`/video_details/${videoId}`, function (video) {
+                    const videoDetails = $('#video-details');
+                    const videoHtml = `
+                        <div class="video">
+                            <div class="video-thumbnail">
+                                <img src="${video.thumbnail}" alt="Video Thumbnail">
+                            </div>
+                            <div class="video-details">
+                                <h2>${video.title}</h2>
+                                <p class="metadata">Duration: ${formatDuration(video.duration)}</p>
+                                <p class="metadata">${video.views ? video.views : '0'} views</p>
+                                <p class="metadata">Likes: ${video.likes ? video.likes : '0'}</p>
+                                <p class="description">${marked(video.description)}</p>
+                            </div>
+                        </div>
+                    `;
+                    videoDetails.html(videoHtml);
+                });
+
+
+                // Fetch sentiment analysis
+                $.getJSON(`/video_sentiment/${videoId}`, function (data) {
+                    const totalComments = data.Positive + data.Neutral + data.Negative;
+                    $('.total-comments').html(`<p>Total Comments: ${totalComments}</p>`);
+
+                    // Radar Chart for Sentiment
+                    const radarCtx = document.getElementById('radar-chart').getContext('2d');
+                    new Chart(radarCtx, {
+                        type: 'radar',
+                        data: {
+                            labels: ['Positive', 'Neutral', 'Negative'],
+                            datasets: [{
+                                label: 'Sentiment Analysis',
+                                data: [data.Positive, data.Neutral, data.Negative],
+                                backgroundColor: 'rgba(0, 128, 255, 0.2)',
+                                borderColor: 'rgba(0, 128, 255, 0.6)',
+                                borderWidth: 1
+                            }]
+                        }
+                    });
+
+                    // Bar Chart for Sentiment
+                    const barCtx = document.getElementById('bar-chart').getContext('2d');
+                    new Chart(barCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Positive', 'Neutral', 'Negative'],
+                            datasets: [{
+                                label: 'Sentiment Analysis',
+                                data: [data.Positive, data.Neutral, data.Negative],
+                                backgroundColor: [
+                                    'rgba(0, 128, 255, 0.6)',
+                                    'rgba(255, 206, 86, 0.6)',
+                                    'rgba(255, 99, 132, 0.6)'
+                                ],
+                                borderColor: [
+                                    'rgba(0, 128, 255, 1)',
+                                    'rgba(255, 206, 86, 1)',
+                                    'rgba(255, 99, 132, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        }
+                    });
+                });
+
+                // Fetch AI-Generated analysis
+                $.getJSON(`/ai_analysis/${videoId}`, function (data) {
+                    console.log();
+                    if (data && data.analysis) {
+                        $('#ai-analysis-content').html(marked(data.analysis));
+                    } else {
+                        $('#ai-analysis-content').html('<p class="error-message">Failed to fetch AI analysis.</p>');
+                    }
+                }).fail(function () {
+                    $('#ai-analysis-content').html('<p class="error-message">Failed to fetch AI analysis.</p>');
+                });
+            } else {
+                alert('No video ID provided.');
+            }
+        });
+    </script>
+</body>
+
+</html>
